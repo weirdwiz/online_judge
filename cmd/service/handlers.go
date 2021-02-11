@@ -2,6 +2,7 @@ package service
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
@@ -21,7 +22,11 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	var request CompileRequest
 	var compiler string
 
-	json.NewDecoder(r.Body).Decode(&request)
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+
 	switch request.Language {
 	case "C":
 		compiler = "gcc"
@@ -36,9 +41,17 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	file.WriteString(request.Code)
 	defer file.Close()
 	cmd := exec.Command(compiler, "test.c")
-	cmd.Run()
+	stdout, err := cmd.Output()
+	if err != nil {
+		w.WriteHeader(http.StatusBadGateway)
+		return
+	}
 	cmd = exec.Command("./a.out")
-	stdout, _ := cmd.Output()
+	stdout, err = cmd.Output()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 
 	response := &CompileResponse{
 		Output: string(stdout),
