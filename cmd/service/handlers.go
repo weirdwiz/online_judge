@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 type CompileRequest struct {
@@ -27,30 +28,37 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(err.Error())
 	}
 
-	switch request.Language {
-	case "C":
-		compiler = "gcc"
+	fileExtention := strings.ToLower(request.Language)
+	switch fileExtention {
 	case "c":
 		compiler = "gcc"
+	case "cpp":
+		compiler = "g++"
+	case "py":
+		compiler = "python3"
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
-	file, _ := os.Create("test.c")
+	file, _ := os.Create("test." + fileExtention)
 	file.WriteString(request.Code)
 	defer file.Close()
-	cmd := exec.Command(compiler, "test.c")
+
+	cmd := exec.Command(compiler, file.Name())
 	stdout, err := cmd.Output()
 	if err != nil {
 		w.WriteHeader(http.StatusBadGateway)
 		return
 	}
-	cmd = exec.Command("./a.out")
-	stdout, err = cmd.Output()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
+
+	if fileExtention == "c" || fileExtention == "cpp" {
+		cmd = exec.Command("./a.out")
+		stdout, err = cmd.Output()
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
 	}
 
 	response := &CompileResponse{
