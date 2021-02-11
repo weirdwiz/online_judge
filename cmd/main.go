@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	fmt.Printf("Starting")
+	fmt.Printf("Starting\n")
 	service.StartWebServer("5050")
 	fmt.Println("Started at 5050")
 }
