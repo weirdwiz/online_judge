@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/weirdwiz/online_judge/compile_microservice/cmd/dbclient"
+	"github.com/weirdwiz/online_judge/compile_microservice/internal/app/dbclient"
 	"github.com/weirdwiz/online_judge/compile_microservice/internal/app/service"
 )
 
