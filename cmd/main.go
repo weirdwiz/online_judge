@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/weirdwiz/compile_microservice/cmd/service"
+	"github.com/weirdwiz/online_judge/compile_microservice/cmd/dbclient"
+	"github.com/weirdwiz/online_judge/compile_microservice/internal/app/service"
 )
 
 func main() {
@@ -14,7 +15,7 @@ func main() {
 }
 
 func initializeBoltClient() {
-		service.DBClient = &dbclient.BoltClient{}
-		service.DBClient.OpenBoltDb()
-		service.DBClient.Seed()
+	service.DBClient = &dbclient.BoltClient{}
+	service.DBClient.OpenBoltDb()
+	service.DBClient.Seed()
 }
