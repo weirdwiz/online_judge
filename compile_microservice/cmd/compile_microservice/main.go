@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/weirdwiz/compile_microservice/cmd/service"
+	"github.com/weirdwiz/online_judge/compile_microservice/internal/app/service"
 )
 
 func main() {
