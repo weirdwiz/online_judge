@@ -1,33 +1,25 @@
-package main
+package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
-	"encoding/json"
 
-	"github.com/gorilla/mux"
+	"github.com/weirdwiz/online_judge/authentication/internal/app/dbclient"
+	"github.com/weirdwiz/online_judge/authentication/internal/app/model"
 )
 
-func NewRouter() *mux.Router {
-	r := mux.NewRouter()
-	r.HandleFunc("/login", HandleLogin).Methods("POST")
-	r.HandleFunc("/register", HandleRegistration).Methods("POST")
-	r.HandleFunc("/validateToken", HandleValidateToken).Methods("POST")
-	return r
-}
-
-
 func HandleRegistration(w http.ResponseWriter, r *http.Request) {
-	var user User
+	var user model.User
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&user)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
 	}
-	success, err := DB.CreateUser(user)
+	success, err := DBClient.CreateUser(user)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err)
-        return
+		return
 	}
 	fmt.Fprintf(w, "Status: %t", success)
 }
@@ -44,17 +36,17 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
 	}
-	status, err := DB.Login(user.Email, user.Password)
+	status, err := DBClient.Login(user.Email, user.Password)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err)
-        return
+		return
 	}
 	fmt.Fprintf(w, status)
 }
-
 
 func HandleValidateToken(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusInternalServerError)
 	fmt.Fprintf(w, "Not Yet Implemented")
 }
 
+var DBClient dbclient.IDBClient

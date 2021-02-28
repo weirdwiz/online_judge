@@ -1,11 +1,11 @@
-package main
+package model
 
 import "golang.org/x/crypto/bcrypt"
 
 type User struct {
-		ID string `json:"id"`
-		Email string `json:"email"`
-		Password string `json:"password"`
+	ID       string `json:"id"`
+	Email    string `json:"email"`
+	Password string `json:"password"`
 }
 
 func (u *User) HashPassword() error {
@@ -24,4 +24,3 @@ func (u *User) CheckPassword(password string) error {
 	}
 	return nil
 }
-

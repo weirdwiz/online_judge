@@ -1,4 +1,4 @@
-package main
+package dbclient
 
 import (
 	"encoding/json"
@@ -18,14 +18,12 @@ type IDBClient interface {
 	Login(email, password string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
 }
+
 // Struct to handle the DB Connection
 type DBClient struct {
 	client   *bolt.DB
 	filepath string
 }
-
-// The DB Client for the application
-var DB IDBClient
 
 const (
 	usersBucketName string = "Users"

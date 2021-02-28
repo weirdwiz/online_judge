@@ -5,12 +5,12 @@ import (
 	"net/http"
 )
 
-func StartWebServer(port string) {
+func StarWebServer(port string) {
 	r := NewRouter()
 	http.Handle("/", r)
-	log.Println("Starting on port " + port)
+	log.Println("Starting on Port " + port)
 	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
-		log.Println("there's an error: " + err.Error())
+		log.Println(err.Error())
 	}
 }

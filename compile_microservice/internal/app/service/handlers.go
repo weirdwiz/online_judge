@@ -1,7 +1,6 @@
 package service
 
 import (
-	"github.com/weirdwiz/online_judge/compile_microservice/cmd/dbclient"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -73,6 +72,3 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 
 }
-
-var DBClient dbclient.IBoltClient
-
