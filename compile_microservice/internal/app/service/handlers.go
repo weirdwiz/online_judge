@@ -22,10 +22,17 @@ type CompileResponse struct {
 func CompileCode(w http.ResponseWriter, r *http.Request) {
 	var request CompileRequest
 	var compiler string
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&request)
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+	} else {
+		code := r.FormValue("code")
+		lang := r.FormValue("lang")
 
-	err := json.NewDecoder(r.Body).Decode(&request)
-	if err != nil {
-		fmt.Println(err.Error())
+		request.Code = code
+		request.Language = lang
 	}
 
 	fileExtention := strings.ToLower(request.Language)

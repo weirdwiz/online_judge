@@ -8,7 +8,7 @@
     <title>Write Code</title>
 </head>
 <body>
-    <form action="">
+    <form action="http://localhost:5050/compile" method="POST" >
         <label for="lang-select">Choose a language:</label><br>
         <select name="lang" required>
             <option value="">--Please choose a language--</option>
@@ -16,8 +16,8 @@
             <option value="cpp">C++</option>
             <option value="py">Python</option>
         </select><br>
-        <label for="code">Your CODE goes here : </label><br>
-        <textarea name="code" cols="30" rows="10" ></textarea><br>
+        <label for="code">CODE here : </label><br>
+        <textarea name="code" cols="50" rows="40" placeholder="Your code goes here"></textarea><br>
         <input type="submit" value="Submit"><br>
     </form>
 </body>
