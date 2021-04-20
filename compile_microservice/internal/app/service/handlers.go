@@ -8,19 +8,12 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/weirdwiz/online_judge/compile_microservice/pkg/sandbox"
 )
 
-type CompileRequest struct {
-	Code     string `json:"code"`
-	Language string `json:"lang"`
-}
-
-type CompileResponse struct {
-	Output string `json:"output"`
-}
-
 func CompileCode(w http.ResponseWriter, r *http.Request) {
-	var request CompileRequest
+	var request sandbox.CompileRequest
 	var compiler string
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(&request)
@@ -68,7 +61,7 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	response := &CompileResponse{
+	response := &sandbox.CompileResponse{
 		Output: string(stdout),
 	}
 

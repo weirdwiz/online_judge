@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/boltdb/bolt"
+	"github.com/weirdwiz/online_judge/authentication/internal/app/model"
 )
 
 // Interface for the DB Client
@@ -14,7 +15,7 @@ type IDBClient interface {
 	Initialize(filepath string)
 	Open()
 	Close()
-	CreateUser(u User) (bool, error)
+	CreateUser(u model.User) (bool, error)
 	Login(email, password string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
 }
@@ -61,7 +62,7 @@ func (db *DBClient) Close() {
 	db.client.Close()
 }
 
-func (db *DBClient) CreateUser(u User) (bool, error) {
+func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
 	if err != nil || isNew == false {
 		return false, err
@@ -115,7 +116,7 @@ func (db *DBClient) Login(email, password string) (string, error) {
 	err := db.client.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(usersBucketName))
 		userBytes := b.Get([]byte(email))
-		u := User{}
+		u := model.User{}
 		json.Unmarshal(userBytes, &u)
 		err := u.CheckPassword(password)
 		if err != nil {

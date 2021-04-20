@@ -30,7 +30,7 @@ func WriteError(w http.ResponseWriter, statusCode int, err error) {
 }
 
 func HandleLogin(w http.ResponseWriter, r *http.Request) {
-	var user User
+	var user model.User
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&user)
 	if err != nil {
