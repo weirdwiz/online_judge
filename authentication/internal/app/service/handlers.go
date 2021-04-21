@@ -94,9 +94,32 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func HandleValidateToken(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, "Not Yet Implemented")
+
+func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
+	var batch model.Batch
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&batch)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
+		}
+	} else {
+		name := r.FormValue("name")
+		students := r.FormValue("students")
+
+		batch.Name = name
+		batch.Students = students
+	}
+
+	_, err := DBClient.AddBatch(batch.Name, batch.Students)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+
 }
 
 var DBClient dbclient.IDBClient

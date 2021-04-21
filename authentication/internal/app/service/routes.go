@@ -32,4 +32,10 @@ var routes = Routes{
 		"/validateToken",
 		HandleValidateToken,
 	},
+	Route{
+		"AddBatch",
+		"POST",
+		"/addbatch",
+		HandleAddBatch,
+	},
 }

@@ -18,6 +18,7 @@ type IDBClient interface {
 	CreateUser(u model.User) (bool, error)
 	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
+	AddBatch(batch, []students string) (string, error)
 }
 
 // Struct to handle the DB Connection
@@ -28,6 +29,7 @@ type DBClient struct {
 
 const (
 	usersBucketName string = "Users"
+	batchBucketName string = "Batch"
 )
 
 func (db *DBClient) Initialize(filepath string) {
@@ -146,4 +148,34 @@ func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 		return "nope", err
 	}
 	return "yep", nil
+}
+
+
+func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
+	db.Open()
+	defer db.Close()
+
+	err = db.client.Update(func(txn *bolt.Tx) error {
+		b := txn.Bucket([]byte(batchBucketName))
+		id, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+		ub.ID = strconv.Itoa(int(id))
+		ub.HashPassword()
+		userBytes, err := json.Marshal(u)
+		if err != nil {
+			return err
+		}
+		err = b.Put([]byte(ub.Name), userBytes)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return false, nil
+	}
+
+	return true, nil
 }

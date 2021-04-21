@@ -21,8 +21,8 @@ type Assigment struct {
 }
 
 type Batch struct {
-	Name        string
-	Students    []Student
+	Name        string 'json:"name"'
+	Students    string 'json:"students"'
 	//Assignments []Assignment
 }
 
