@@ -21,15 +21,9 @@ var routes = Routes{
 		HandleLogin,
 	},
 	Route{
-		"Teacher Registration",
+		"Registration",
 		"POST",
-		"/teacher/register",
-		HandleRegistration,
-	},
-	Route{
-		"Student Registration",
-		"POST",
-		"/student/register",
+		"/register",
 		HandleRegistration,
 	},
 	Route{

@@ -16,7 +16,7 @@ type IDBClient interface {
 	Open()
 	Close()
 	CreateUser(u model.User) (bool, error)
-	Login(email, password string) (string, error)
+	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
 }
 
@@ -62,9 +62,10 @@ func (db *DBClient) Close() {
 	db.client.Close()
 }
 
-func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
+/* func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
 
 }
+*/
 
 func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
@@ -96,11 +97,11 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 		return false, nil
 	}
 
-	switch u.Type {
+	switch u.AccountType {
 	case "student":
-		err = d.client.Update(func(txn *bolt.Txn) error {
-			b := txn.Bucket([]byte(studentList))
-
+		err = db.client.Update(func(txn *bolt.Tx) error {
+			//b := txn.Bucket([]byte(studentList))
+			return nil
 		})
 	case "teacher":
 	}
@@ -125,7 +126,7 @@ func (db *DBClient) CheckUserIsNew(email string) (bool, error) {
 	return true, nil
 }
 
-func (db *DBClient) Login(email, password string) (string, error) {
+func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 	db.Open()
 	defer db.Close()
 	err := db.client.View(func(tx *bolt.Tx) error {

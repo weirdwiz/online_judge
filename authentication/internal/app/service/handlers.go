@@ -36,24 +36,9 @@ func GenerateJWT(email string) (string, error) {
 	return tokenString, nil
 }
 
-func HandleRegistrationStudent(w http.ResponseWriter, r *http.Request) {
-	var student model.Student
-
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&user)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
-	}
-	success, err := DBClient.CreateUser(user)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	fmt.Fprintf(w, "Status: %t", success)
-}
-
-func HandleRegistrationTeacher(w http.ResponseWriter, r *http.Request) {
+func HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	var user model.User
+
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&user)
 	if err != nil {
@@ -82,12 +67,14 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	} else {
 		email := r.FormValue("email")
 		password := r.FormValue("password")
+		accounttype := r.FormValue("accounttype")
 
 		user.Email = email
 		user.Password = password
+		user.AccountType = accounttype
 	}
 
-	_, err := DBClient.Login(user.Email, user.Password)
+	_, err := DBClient.Login(user.Email, user.Password, user.AccountType)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err)
 		return
