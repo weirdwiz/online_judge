@@ -1,16 +1,15 @@
 package main
 
 import (
-	"log"
-	"net/http"
-
 	"github.com/weirdwiz/online_judge/authentication/internal/app/dbclient"
 	"github.com/weirdwiz/online_judge/authentication/internal/app/service"
 )
 
 func InitializeHttpServer() {
-	r := service.NewRouter()
-	log.Panic(http.ListenAndServe(":8080", r))
+	service.StarWebServer("8080")
+
+	// r := service.NewRouter()
+	// log.Panic(http.ListenAndServe(":8080", r))
 }
 
 func InitializeDatabase() {
