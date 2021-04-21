@@ -62,6 +62,10 @@ func (db *DBClient) Close() {
 	db.client.Close()
 }
 
+func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
+
+}
+
 func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
 	if err != nil || isNew == false {
@@ -69,6 +73,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	}
 	db.Open()
 	defer db.Close()
+
 	err = db.client.Update(func(txn *bolt.Tx) error {
 		b := txn.Bucket([]byte(usersBucketName))
 		id, err := b.NextSequence()
@@ -90,6 +95,16 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	if err != nil {
 		return false, nil
 	}
+
+	switch u.Type {
+	case "student":
+		err = d.client.Update(func(txn *bolt.Txn) error {
+			b := txn.Bucket([]byte(studentList))
+
+		})
+	case "teacher":
+	}
+
 	return true, nil
 }
 
