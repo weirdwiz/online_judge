@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -40,13 +42,13 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	case "cpp":
 		compiler = "g++"
 	case "py":
-		compiler = "python3"
+		compiler = "python"
 	default:
 		w.WriteHeader(http.StatusNotImplemented)
 		return
 	}
 
-	file, err := ioutil.TempFile("/tmp", compiler+".*."+fileExtention)
+	file, err := ioutil.TempFile("/tmp", compiler+"*."+fileExtention)
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +91,6 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 
 func compile(file *os.File, compiler string) (string, error) {
 	buf := new(strings.Builder)
-	fmt.Println("compiling")
 
 	ctx := context.Background()
 
@@ -99,11 +100,13 @@ func compile(file *os.File, compiler string) (string, error) {
 	}
 
 	var Cmd []string
+
+	_, fileName := filepath.Split(file.Name())
 	switch compiler {
 	case "gcc":
-		Cmd = []string{"gcc", "-o", "compiled", file.Name()}
+		Cmd = []string{"/bin/sh", "-c", "gcc " + fileName + " && ./a.out"}
 	case "python":
-		Cmd = []string{"python", file.Name()}
+		Cmd = []string{"python", fileName}
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -112,7 +115,20 @@ func compile(file *os.File, compiler string) (string, error) {
 		Cmd:   Cmd,
 	}, nil, nil, nil, "")
 
-	err = cli.CopyToContainer(ctx, resp.ID, "/", file, types.CopyToContainerOptions{})
+	if err != nil {
+		return buf.String(), err
+	}
+
+	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+
+	//	err = cli.CopyToContainer(ctx, resp.ID, "/"+fileName, file, types.CopyToContainerOptions{})
+	//	if err != nil {
+	//		return buf.String(), err
+	//	}
+
+	cmd := exec.Command("docker", "cp", file.Name(), resp.ID+":"+fileName)
+	_, err = cmd.Output()
+
 	if err != nil {
 		return buf.String(), err
 	}
@@ -129,6 +145,16 @@ func compile(file *os.File, compiler string) (string, error) {
 		}
 	case <-statusCh:
 	}
+
+	//	if compiler == "gcc" {
+	//		execResp, err := cli.ContainerExecCreate(ctx, resp.ID, types.ExecConfig{
+	//			Cmd: []string{"./a.out"},
+	//		})
+	//		if err != nil {
+	//			return buf.String(), err
+	//		}
+	//		cli.ContainerExecStart(ctx, execResp.ID, types.ExecStartCheck{})
+	//	}
 
 	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
 	if err != nil {
