@@ -1,0 +1,3 @@
+[submodule "onlinejudge-frontend"]
+	path = onlinejudge-frontend
+	url = https://github.com/keshav2904/onlinejudge-frontend
