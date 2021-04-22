@@ -16,8 +16,9 @@ type IDBClient interface {
 	Open()
 	Close()
 	CreateUser(u model.User) (bool, error)
-	Login(email, password string) (string, error)
+	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
+	AddBatch(batch, []students string) (string, error)
 }
 
 // Struct to handle the DB Connection
@@ -28,6 +29,7 @@ type DBClient struct {
 
 const (
 	usersBucketName string = "Users"
+	batchBucketName string = "Batch"
 )
 
 func (db *DBClient) Initialize(filepath string) {
@@ -62,9 +64,10 @@ func (db *DBClient) Close() {
 	db.client.Close()
 }
 
-func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
+/* func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
 
 }
+*/
 
 func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
@@ -96,11 +99,11 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 		return false, nil
 	}
 
-	switch u.Type {
+	switch u.AccountType {
 	case "student":
-		err = d.client.Update(func(txn *bolt.Txn) error {
-			b := txn.Bucket([]byte(studentList))
-
+		err = db.client.Update(func(txn *bolt.Tx) error {
+			//b := txn.Bucket([]byte(studentList))
+			return nil
 		})
 	case "teacher":
 	}
@@ -125,7 +128,7 @@ func (db *DBClient) CheckUserIsNew(email string) (bool, error) {
 	return true, nil
 }
 
-func (db *DBClient) Login(email, password string) (string, error) {
+func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 	db.Open()
 	defer db.Close()
 	err := db.client.View(func(tx *bolt.Tx) error {
@@ -145,4 +148,34 @@ func (db *DBClient) Login(email, password string) (string, error) {
 		return "nope", err
 	}
 	return "yep", nil
+}
+
+
+func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
+	db.Open()
+	defer db.Close()
+
+	err = db.client.Update(func(txn *bolt.Tx) error {
+		b := txn.Bucket([]byte(batchBucketName))
+		id, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+		ub.ID = strconv.Itoa(int(id))
+		ub.HashPassword()
+		userBytes, err := json.Marshal(u)
+		if err != nil {
+			return err
+		}
+		err = b.Put([]byte(ub.Name), userBytes)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return false, nil
+	}
+
+	return true, nil
 }

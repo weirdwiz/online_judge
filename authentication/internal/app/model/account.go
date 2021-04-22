@@ -6,7 +6,7 @@ type User struct {
 	ID       string `json:"id"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-	Type     string `json:type`
+	AccountType     string `json:"accounttype"`
 }
 
 type TestCase struct {
@@ -21,15 +21,15 @@ type Assigment struct {
 }
 
 type Batch struct {
-	Name        string
-	Students    []Student
-	Assignments []Assignment
+	Name        string 'json:"name"'
+	Students    string 'json:"students"'
+	//Assignments []Assignment
 }
 
 type Submission struct {
 	AssignmentID string            `json:"assignmentId`
 	Code         string            `json:"code"`
-	Output       string            `json:output"`
+	Output       string            `json:"output"`
 	Pass         map[TestCase]bool `json:"pass"`
 }
 
