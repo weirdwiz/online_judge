@@ -18,6 +18,7 @@ type IDBClient interface {
 	CreateUser(u model.User) (bool, error)
 	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
+	// AddBatch(name string, )
 }
 
 // Struct to handle the DB Connection
@@ -30,6 +31,7 @@ const (
 	usersBucketName string = "Users"
 	studentList     string = "Students"
 	teacherList     string = "Teachers"
+	batchBucketName string = "Batches"
 )
 
 func (db *DBClient) Initialize(filepath string) {
@@ -66,7 +68,7 @@ func (db *DBClient) Close() {
 
 func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
-	if err != nil || isNew == false {
+	if err != nil || !isNew {
 		return false, err
 	}
 	db.Open()
@@ -74,7 +76,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 	err = db.client.Update(func(txn *bolt.Tx) error {
 		b := txn.Bucket([]byte(usersBucketName))
-		id, err := b.nextsequence()
+		id, err := b.NextSequence()
 		if err != nil {
 			return err
 		}
@@ -103,7 +105,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 		err = db.client.Update(func(txn *bolt.Tx) error {
 			b := txn.Bucket([]byte(studentList))
-			id, err := b.nextsequence()
+			id, err := b.NextSequence()
 			if err != nil {
 				return err
 			}
@@ -120,6 +122,9 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 			}
 			return nil
 		})
+		if err != nil {
+			return false, nil
+		}
 
 	case "teacher":
 		t := model.Teacher{
@@ -129,7 +134,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 		err := db.client.Update(func(txn *bolt.Tx) error {
 			b := txn.Bucket([]byte(teacherList))
-			id, err := b.nextsequence()
+			id, err := b.NextSequence()
 			if err != nil {
 				return err
 			}
@@ -147,6 +152,9 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 			return nil
 		})
+		if err != nil {
+			return false, nil
+		}
 	}
 
 	return true, nil
@@ -159,7 +167,7 @@ func (db *DBClient) CheckUserIsNew(email string) (bool, error) {
 		b := tx.Bucket([]byte(usersBucketName))
 		userBytes := b.Get([]byte(email))
 		if userBytes != nil {
-			return fmt.Errorf("User with email %s already exists", email)
+			return fmt.Errorf("user with email %s already exists", email)
 		}
 		return nil
 	})
@@ -181,7 +189,7 @@ func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 		if err != nil {
 			log.Printf("ERROR: %s", err)
 			log.Printf("Invalid Login Attempt for User: %s", email)
-			return fmt.Errorf("Invalid Email/Password Combnation")
+			return fmt.Errorf("invalid email/password combnation")
 		}
 		return nil
 	})
@@ -195,15 +203,14 @@ func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
 	db.Open()
 	defer db.Close()
 
-	err = db.client.Update(func(txn *bolt.Tx) error {
+	err := db.client.Update(func(txn *bolt.Tx) error {
 		b := txn.Bucket([]byte(batchBucketName))
 		id, err := b.NextSequence()
 		if err != nil {
 			return err
 		}
 		ub.ID = strconv.Itoa(int(id))
-		ub.HashPassword()
-		userBytes, err := json.Marshal(u)
+		userBytes, err := json.Marshal(ub)
 		if err != nil {
 			return err
 		}

@@ -43,7 +43,7 @@ func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 
 			token, err := jwt.Parse(r.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
 				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, fmt.Errorf("There was an error")
+					return nil, fmt.Errorf("there was an error")
 				}
 				return mySigningKey, nil
 			})
@@ -62,29 +62,12 @@ func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 	})
 }
 
-func HandleRegistrationStudent(w http.ResponseWriter, r *http.Request) {
-	var student model.Student
-
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&user)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
-	}
-	success, err := DBClient.CreateUser(user)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	fmt.Fprintf(w, "Status: %t", success)
-}
-
-func HandleRegistrationTeacher(w http.ResponseWriter, r *http.Request) {
+func HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	var user model.User
-
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&user)
 	if err != nil {
-		WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
+		WriteError(w, http.StatusBadRequest, fmt.Errorf("error decoding user"))
 	}
 	success, err := DBClient.CreateUser(user)
 	if err != nil {
@@ -104,7 +87,7 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding User"))
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("error decoding user"))
 		}
 	} else {
 		email := r.FormValue("email")
@@ -136,31 +119,31 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
-	var batch model.Batch
-	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(&batch)
-		if err != nil {
-			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
-		}
-	} else {
-		name := r.FormValue("name")
-		students := r.FormValue("students")
+// func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
+// 	var batch model.Batch
+// 	if r.Header.Get("Content-Type") == "application/json" {
+// 		err := json.NewDecoder(r.Body).Decode(&batch)
+// 		if err != nil {
+// 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
+// 		}
+// 	} else {
+// 		name := r.FormValue("name")
+// 		students := r.FormValue("students")
 
-		batch.Name = name
-		batch.Students = students
-	}
+// 		batch.Name = name
+// 		batch.Students = students
+// 	}
 
-	_, err := DBClient.AddBatch(batch.Name, batch.Students)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+// 	_, err := DBClient.AddBatch(batch.Name, batch.Students)
+// 	if err != nil {
+// 		WriteError(w, http.StatusBadRequest, err)
+// 		return
+// 	}
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Write(data)
 
-}
+// }
 
 var DBClient dbclient.IDBClient
