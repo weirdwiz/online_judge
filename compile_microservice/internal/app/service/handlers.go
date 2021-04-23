@@ -100,17 +100,24 @@ func compile(file *os.File, compiler string) (string, error) {
 	}
 
 	var Cmd []string
+	var image string
 
 	_, fileName := filepath.Split(file.Name())
+
 	switch compiler {
+	case "g++":
+		image = "gcc"
+		Cmd = []string{"/bin/sh", "-c", "g++ " + fileName + " && ./a.out"}
 	case "gcc":
+		image = "gcc"
 		Cmd = []string{"/bin/sh", "-c", "gcc " + fileName + " && ./a.out"}
 	case "python":
+		image = "python"
 		Cmd = []string{"python", fileName}
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
-		Image: compiler,
+		Image: image,
 		Tty:   false,
 		Cmd:   Cmd,
 	}, nil, nil, nil, "")
