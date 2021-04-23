@@ -18,7 +18,6 @@ type IDBClient interface {
 	CreateUser(u model.User) (bool, error)
 	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
-	AddBatch(batch, []students string) (string, error)
 }
 
 // Struct to handle the DB Connection
@@ -29,7 +28,8 @@ type DBClient struct {
 
 const (
 	usersBucketName string = "Users"
-	batchBucketName string = "Batch"
+	studentList     string = "Students"
+	teacherList     string = "Teachers"
 )
 
 func (db *DBClient) Initialize(filepath string) {
@@ -64,11 +64,6 @@ func (db *DBClient) Close() {
 	db.client.Close()
 }
 
-/* func (db *DBClient) CreateStudent(s model.Student) (bool, error) {
-
-}
-*/
-
 func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	isNew, err := db.CheckUserIsNew(u.Email)
 	if err != nil || isNew == false {
@@ -79,7 +74,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 	err = db.client.Update(func(txn *bolt.Tx) error {
 		b := txn.Bucket([]byte(usersBucketName))
-		id, err := b.NextSequence()
+		id, err := b.nextsequence()
 		if err != nil {
 			return err
 		}
@@ -101,11 +96,57 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 
 	switch u.AccountType {
 	case "student":
+		s := model.Student{
+			Email: u.Email,
+			Name:  u.Name,
+		}
+
 		err = db.client.Update(func(txn *bolt.Tx) error {
-			//b := txn.Bucket([]byte(studentList))
+			b := txn.Bucket([]byte(studentList))
+			id, err := b.nextsequence()
+			if err != nil {
+				return err
+			}
+			s.ID = strconv.Itoa(int(id))
+
+			studentBytes, err := json.Marshal(s)
+			if err != nil {
+				return err
+			}
+
+			err = b.Put([]byte(u.Email), studentBytes)
+			if err != nil {
+				return err
+			}
 			return nil
 		})
+
 	case "teacher":
+		t := model.Teacher{
+			Email: u.Email,
+			Name:  u.Name,
+		}
+
+		err := db.client.Update(func(txn *bolt.Tx) error {
+			b := txn.Bucket([]byte(teacherList))
+			id, err := b.nextsequence()
+			if err != nil {
+				return err
+			}
+			t.ID = strconv.Itoa(int(id))
+
+			teacherBytes, err := json.Marshal(t)
+			if err != nil {
+				return err
+			}
+
+			err = b.Put([]byte(u.Email), teacherBytes)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		})
 	}
 
 	return true, nil
@@ -149,7 +190,6 @@ func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 	}
 	return "yep", nil
 }
-
 
 func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
 	db.Open()

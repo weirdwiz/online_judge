@@ -3,30 +3,32 @@ package model
 import "golang.org/x/crypto/bcrypt"
 
 type User struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-	AccountType     string `json:"accounttype"`
+	ID          string `json:"id"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	AccountType string `json:"accounttype"`
 }
 
 type TestCase struct {
-	Input  string
-	Output string
+	Input  string `json:"input"`
+	Output string `json:"output"`
 }
 
-type Assigment struct {
-	AssigmentID string `json:"assigmentId"`
-	Question    string `json:"question"`
-	TestCases   []TestCase
+type Assignment struct {
+	ID        string `json:"id"`
+	Question  string `json:"question"`
+	TestCases []TestCase
 }
 
 type Batch struct {
-	Name        string 'json:"name"'
-	Students    string 'json:"students"'
-	//Assignments []Assignment
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Students    []string `json:"students"`
+	Assignments []string `json:"assignments"`
 }
 
 type Submission struct {
+	ID           string            `json:"id"`
 	AssignmentID string            `json:"assignmentId`
 	Code         string            `json:"code"`
 	Output       string            `json:"output"`
@@ -34,13 +36,16 @@ type Submission struct {
 }
 
 type Student struct {
-	User
-	Submissions []Submission
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Email       string   `json:"email"`
+	Submissions []string `json:"submissions"`
 }
 
 type Teacher struct {
-	Classes []Batch
-	User
+	ID      string   `json:"id"`
+	Email   string   `json:"email"`
+	Classes []string `json:"classes"`
 }
 
 func (u *User) HashPassword() error {
