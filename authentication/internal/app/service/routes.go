@@ -32,10 +32,10 @@ var routes = Routes{
 	// 	"/validateToken",
 	// 	HandleValidateToken,
 	// },
-	// Route{
-	// 	"AddBatch",
-	// 	"POST",
-	// 	"/addbatch",
-	// 	HandleAddBatch,
-	// },
+	Route{
+		"AddBatch",
+		"POST",
+		"/addbatch",
+		isAuthorized(HandleAddBatch),
+	},
 }

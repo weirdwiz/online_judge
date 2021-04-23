@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -36,9 +37,8 @@ func GenerateJWT(email string) (string, error) {
 	return tokenString, nil
 }
 
-func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handler {
+func isAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		if r.Header["Token"] != nil {
 
 			token, err := jwt.Parse(r.Header["Token"][0], func(token *jwt.Token) (interface{}, error) {
@@ -47,17 +47,15 @@ func IsAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 				}
 				return mySigningKey, nil
 			})
-
 			if err != nil {
-				fmt.Fprintf(w, err.Error())
+				WriteError(w, http.StatusUnauthorized, err)
 			}
 
 			if token.Valid {
 				endpoint(w, r)
 			}
 		} else {
-
-			fmt.Fprintf(w, "Not Authorized")
+			WriteError(w, http.StatusUnauthorized, nil)
 		}
 	})
 }
@@ -119,31 +117,59 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
-// 	var batch model.Batch
-// 	if r.Header.Get("Content-Type") == "application/json" {
-// 		err := json.NewDecoder(r.Body).Decode(&batch)
-// 		if err != nil {
-// 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
-// 		}
-// 	} else {
-// 		name := r.FormValue("name")
-// 		students := r.FormValue("students")
+func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 
-// 		batch.Name = name
-// 		batch.Students = students
-// 	}
+	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
+	if !valid {
+		WriteError(w, http.StatusUnauthorized, nil)
+		return
+	}
 
-// 	_, err := DBClient.AddBatch(batch.Name, batch.Students)
-// 	if err != nil {
-// 		WriteError(w, http.StatusBadRequest, err)
-// 		return
-// 	}
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Write(data)
+	teacherEmail := tokenClaims["email"]
 
-// }
+	var batch model.Batch
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&batch)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
+		}
+	} else {
+		name := r.FormValue("name")
+		students := r.FormValue("students")
+
+		batch.Name = name
+		batch.Students = students
+	}
+
+	_, err := DBClient.AddBatch(batch, teacherEmail)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	fmt.Fprintf(w, "Status: %t", success)
+}
+
+func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
+	hmacSecretString := "signingKey"
+	hmacSecret := []byte(hmacSecretString)
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("There was an error")
+		}
+		return hmacSecret, nil
+	})
+
+	if err != nil {
+		return nil, false
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		return claims, true
+	} else {
+		log.Printf("Invalid JWT Token")
+		return nil, false
+	}
+}
 
 var DBClient dbclient.IDBClient

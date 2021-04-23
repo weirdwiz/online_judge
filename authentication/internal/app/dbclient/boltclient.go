@@ -18,7 +18,7 @@ type IDBClient interface {
 	CreateUser(u model.User) (bool, error)
 	Login(email, password, accounttype string) (string, error)
 	CheckUserIsNew(email string) (bool, error)
-	// AddBatch(name string, )
+	AddBatch(ub model.Batch, teacherEmail string) (bool, error)
 }
 
 // Struct to handle the DB Connection
@@ -28,10 +28,10 @@ type DBClient struct {
 }
 
 const (
-	usersBucketName string = "Users"
-	studentList     string = "Students"
-	teacherList     string = "Teachers"
-	batchBucketName string = "Batches"
+	usersBucketName       string = "Users"
+	studentListBucketName string = "Students"
+	teacherListBucketName string = "Teachers"
+	batchBucketName       string = "Batches"
 )
 
 func (db *DBClient) Initialize(filepath string) {
@@ -104,7 +104,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 		}
 
 		err = db.client.Update(func(txn *bolt.Tx) error {
-			b := txn.Bucket([]byte(studentList))
+			b := txn.Bucket([]byte(studentListBucketName))
 			id, err := b.NextSequence()
 			if err != nil {
 				return err
@@ -133,7 +133,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 		}
 
 		err := db.client.Update(func(txn *bolt.Tx) error {
-			b := txn.Bucket([]byte(teacherList))
+			b := txn.Bucket([]byte(teacherListBucketName))
 			id, err := b.NextSequence()
 			if err != nil {
 				return err
@@ -199,7 +199,9 @@ func (db *DBClient) Login(email, password, accounttype string) (string, error) {
 	return "yep", nil
 }
 
-func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
+func (db *DBClient) FetchBatches()
+
+func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) {
 	db.Open()
 	defer db.Close()
 
@@ -210,14 +212,54 @@ func (db *DBClient) AddBatch(ub model.Batch) (bool, error) {
 			return err
 		}
 		ub.ID = strconv.Itoa(int(id))
-		userBytes, err := json.Marshal(ub)
+		batchBytes, err := json.Marshal(ub)
 		if err != nil {
 			return err
 		}
-		err = b.Put([]byte(ub.Name), userBytes)
+		err = b.Put([]byte(ub.ID), batchBytes)
 		if err != nil {
 			return err
 		}
+
+		b = txn.Bucket([]byte(studentListBucketName))
+		for _, student := range ub.Students {
+			studentByte := b.Get([]byte(student))
+			s := model.Student{}
+
+			err := json.Unmarshal(studentByte, &s)
+			if err != nil {
+				return err
+			}
+
+			append(s.Batches, ub.ID)
+
+			studentByte, err = json.Marshal(s)
+			if err != nil {
+				return err
+			}
+
+			err = b.Put([]byte(s.Email), studentByte)
+			if err != nil {
+				return err
+			}
+		}
+
+		b = txn.Bucket([]byte(teacherListBucketName))
+		teacherByte := b.Get([]teacherEmail)
+		t := model.Teacher{}
+
+		append(t.Batches, ub.ID)
+
+		teacherByte, err = json.Marshal(t)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte(t.Email), teacherByte)
+		if err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if err != nil {
