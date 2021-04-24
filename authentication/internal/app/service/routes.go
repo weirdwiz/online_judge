@@ -38,4 +38,10 @@ var routes = Routes{
 		"/addbatch",
 		isAuthorized(HandleAddBatch),
 	},
+	Route{
+		"GetBatches",
+		"GET",
+		"/getbatch",
+		isAuthorized(HandleGetBatches),
+	},
 }

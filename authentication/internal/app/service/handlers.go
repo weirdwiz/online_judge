@@ -125,7 +125,7 @@ func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	teacherEmail := tokenClaims["email"]
+	teacherEmail := fmt.Sprintf("%v", tokenClaims["email"])
 
 	var batch model.Batch
 	if r.Header.Get("Content-Type") == "application/json" {
@@ -133,12 +133,6 @@ func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
 		}
-	} else {
-		name := r.FormValue("name")
-		students := r.FormValue("students")
-
-		batch.Name = name
-		batch.Students = students
 	}
 
 	_, err := DBClient.AddBatch(batch, teacherEmail)
@@ -146,8 +140,30 @@ func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 		WriteError(w, http.StatusBadRequest, err)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+}
 
-	fmt.Fprintf(w, "Status: %t", success)
+func HandleGetBatches(w http.ResponseWriter, r *http.Request) {
+	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
+	if !valid {
+		WriteError(w, http.StatusUnauthorized, nil)
+		return
+	}
+
+	email := fmt.Sprintf("%v", tokenClaims["email"])
+
+	user, err := DBClient.GetUser(email)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err)
+	}
+
+	batches, _ := DBClient.GetBatches(user)
+
+	data, _ := json.Marshal(batches)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 func extractClaims(tokenStr string) (jwt.MapClaims, bool) {

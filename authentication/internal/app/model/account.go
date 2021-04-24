@@ -48,7 +48,7 @@ type Teacher struct {
 	ID      string   `json:"id"`
 	Name    string   `json:"name"`
 	Email   string   `json:"email"`
-	Classes []string `json:"classes"`
+	Batches []string `json:"classes"`
 }
 
 func (u *User) HashPassword() error {
