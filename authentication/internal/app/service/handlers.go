@@ -117,7 +117,6 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 }
 
-<<<<<<< HEAD
 func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 
 	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
@@ -128,17 +127,12 @@ func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 
 	teacherEmail := fmt.Sprintf("%v", tokenClaims["email"])
 
-=======
-
-func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
->>>>>>> 905bc4d (add Batch)
 	var batch model.Batch
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(&batch)
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
 		}
-<<<<<<< HEAD
 	}
 
 	_, err := DBClient.AddBatch(batch, teacherEmail)
@@ -166,26 +160,10 @@ func HandleGetBatches(w http.ResponseWriter, r *http.Request) {
 	batches, _ := DBClient.GetBatches(user)
 
 	data, _ := json.Marshal(batches)
-=======
-	} else {
-		name := r.FormValue("name")
-		students := r.FormValue("students")
-
-		batch.Name = name
-		batch.Students = students
-	}
-
-	_, err := DBClient.AddBatch(batch.Name, batch.Students)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err)
-		return
-	}
->>>>>>> 905bc4d (add Batch)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
-<<<<<<< HEAD
 }
 
 func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
@@ -208,38 +186,32 @@ func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
 		log.Printf("Invalid JWT Token")
 		return nil, false
 	}
-=======
-
->>>>>>> 905bc4d (add Batch)
 }
 
 func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
-	var assignment model.Assignment
+
+	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
+	if !valid {
+		WriteError(w, http.StatusUnauthorized, nil)
+		return
+	}
+
+	teacherEmail := fmt.Sprintf("%v", tokenClaims["email"])
+
+	var batch model.Batch
 	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(&assignment)
+		err := json.NewDecoder(r.Body).Decode(&batch)
 		if err != nil {
 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
 		}
-	} else {
-		assignmentid := r.FormValue("assignmentId")
-		question := r.FormValue("question")
-		testcase := r.FormValue("[]testcase")
-
-		assignment.assignmentid = assignmentid
-		assignment.question = question
-		assignment.testcase = testcase
 	}
 
-	_, err := DBClient.AddAssignment(assignment.AssignmentID, assignment.question, assignment.testcase)
+	_, err := DBClient.AddAssignment(batch, teacherEmail)
 	if err != nil {
 		WriteError(w, http.StatusBadRequest, err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
-	w.Write(data)
-
 }
 
 var DBClient dbclient.IDBClient
