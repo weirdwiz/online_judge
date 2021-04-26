@@ -44,4 +44,16 @@ var routes = Routes{
 		"/getbatch",
 		isAuthorized(HandleGetBatches),
 	},
+	Route{
+		"AddBatch",
+		"POST",
+		"/addbatch",
+		HandleAddBatch,
+	},
+	Route{
+		"Assignment",
+		"POST",
+		"/addassignment",
+		HandleAddAssignment,
+	},
 }
