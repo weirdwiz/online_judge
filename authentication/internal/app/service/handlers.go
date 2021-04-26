@@ -210,6 +210,22 @@ func HandleGetBatches(w http.ResponseWriter, r *http.Request) {
 	w.Write(data)
 }
 
+func HandleGetAssignment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	aID := vars["aID"]
+
+	assignment, err := DBClient.GetAssignment(aID)
+	if err != nil {
+		WriteError(w, http.InternalServerError, err)
+	}
+
+	assigmentBytes, _ := json.Marshal(assignment)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(assigmentBytes)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(assignmentBytes)
+}
+
 func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
 	hmacSecretString := "signingKey"
 	hmacSecret := []byte(hmacSecretString)

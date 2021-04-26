@@ -50,4 +50,10 @@ var routes = Routes{
 		"/addassignment/{bID}",
 		isAuthorized(isTeacher(HandleAddAssignment)),
 	},
+	Route{
+		"GetAssignment",
+		"GET",
+		"/getassignment/{aID}",
+		isAuthorized(HandleGetAssignment),
+	},
 }

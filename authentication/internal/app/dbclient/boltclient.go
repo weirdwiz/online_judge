@@ -22,6 +22,7 @@ type IDBClient interface {
 	GetBatches(u model.User) ([]model.Batch, error)
 	GetUser(email string) (model.User, error)
 	AddAssignment(bID string, assignment model.Assignment) (bool, error)
+	GetAssignment(aID string) (model.Assignment, error)
 }
 
 // Struct to handle the DB Connection
@@ -374,6 +375,35 @@ func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) 
 	}
 
 	return true, nil
+}
+
+func GetAssignment(aID string) (model.Assignment, error) {
+	db.Open()
+	defer db.Close()
+
+	var assignment model.Assignment
+
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		assignment, err := GetAssignment(aID)
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return assignment, nil
+}
+
+func getAssignment(txn *bolt.Tx, aID string) (model.Assignment, error) {
+	b := txn.Bucket([]byte(assignmentBucket))
+	assignmentBytes := b.Get([]byte(bID))
+
+	var assignment model.Assignment
+	err := json.Unmarshal(assignmentBytes, &assignment)
+	if err != nil {
+		return err
+	}
+
+	return assignment, nil
 }
 
 func AddAssignment(bID string, a model.Assignment) (bool, error) {
