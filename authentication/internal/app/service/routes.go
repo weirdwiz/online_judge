@@ -26,16 +26,22 @@ var routes = Routes{
 		"/register",
 		HandleRegistration,
 	},
-	Route{
-		"ValidateToken",
-		"POST",
-		"/validateToken",
-		HandleValidateToken,
-	},
+	// Route{
+	// 	"ValidateToken",
+	// 	"POST",
+	// 	"/validateToken",
+	// 	HandleValidateToken,
+	// },
 	Route{
 		"AddBatch",
 		"POST",
 		"/addbatch",
-		HandleAddBatch,
+		isAuthorized(HandleAddBatch),
+	},
+	Route{
+		"GetBatches",
+		"GET",
+		"/getbatch",
+		isAuthorized(HandleGetBatches),
 	},
 }
