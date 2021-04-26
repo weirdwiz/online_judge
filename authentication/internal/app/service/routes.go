@@ -36,12 +36,24 @@ var routes = Routes{
 		"AddBatch",
 		"POST",
 		"/addbatch",
-		isAuthorized(HandleAddBatch),
+		isAuthorized(isTeacher(HandleAddBatch)),
 	},
 	Route{
 		"GetBatches",
 		"GET",
 		"/getbatch",
 		isAuthorized(HandleGetBatches),
+	},
+	Route{
+		"AddAssignment",
+		"POST",
+		"/addassignment/{bID}",
+		isAuthorized(isTeacher(HandleAddAssignment)),
+	},
+	Route{
+		"GetAssignment",
+		"GET",
+		"/getassignment/{aID}",
+		isAuthorized(HandleGetAssignment),
 	},
 }

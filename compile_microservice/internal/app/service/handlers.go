@@ -28,12 +28,6 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			fmt.Println(err.Error())
 		}
-	} else {
-		code := r.FormValue("code")
-		lang := r.FormValue("lang")
-
-		request.Code = code
-		request.Language = lang
 	}
 
 	fileExtention := strings.ToLower(request.Language)
@@ -49,17 +43,27 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := ioutil.TempFile("/tmp", compiler+"*."+fileExtention)
+	compileFile, err := ioutil.TempFile("/tmp", "compile*."+fileExtention)
 	if err != nil {
 		panic(err)
 	}
 
-	defer os.Remove(file.Name())
+	defer os.Remove(compileFile.Name())
 
-	file.WriteString(request.Code)
-	defer file.Close()
+	compileFile.WriteString(request.Code)
+	defer compileFile.Close()
 
-	stdout, err := compile(file, compiler)
+	inputFile, err := ioutil.TempFile("/tmp", "input*.txt")
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer os.Remove(inputFile.Name())
+	inputFile.WriteString(request.TestCases.Input)
+	defer inputFile.Close()
+
+	stdout, err := compile(compileFile, inputFile, compiler)
 
 	//	cmd := exec.Command(compiler, file.Name())
 	//	stdout, err := cmd.Output()
@@ -90,7 +94,7 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func compile(file *os.File, compiler string) (string, error) {
+func compile(file *os.File, input *os.File, compiler string) (string, error) {
 
 	ctx := context.Background()
 
@@ -103,17 +107,18 @@ func compile(file *os.File, compiler string) (string, error) {
 	var image string
 
 	_, fileName := filepath.Split(file.Name())
+	_, inputFileName := filepath.Split(input.Name())
 
 	switch compiler {
 	case "g++":
 		image = "gcc"
-		Cmd = []string{"/bin/sh", "-c", "g++ " + fileName + " && ./a.out"}
+		Cmd = []string{"/bin/sh", "-c", "g++ " + fileName + " && ./a.out < " + inputFileName}
 	case "gcc":
 		image = "gcc"
-		Cmd = []string{"/bin/sh", "-c", "gcc " + fileName + " && ./a.out"}
+		Cmd = []string{"/bin/sh", "-c", "gcc " + fileName + " && ./a.out < " + inputFileName}
 	case "python":
 		image = "python"
-		Cmd = []string{"python", fileName}
+		Cmd = []string{"python", fileName, " < ", inputFileName}
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -134,6 +139,13 @@ func compile(file *os.File, compiler string) (string, error) {
 	//	}
 
 	cmd := exec.Command("docker", "cp", file.Name(), resp.ID+":"+fileName)
+	_, err = cmd.Output()
+
+	if err != nil {
+		return "", err
+	}
+
+	cmd := exec.Command("docker", "cp", input.Name(), resp.ID+":"+inputFileName)
 	_, err = cmd.Output()
 
 	if err != nil {

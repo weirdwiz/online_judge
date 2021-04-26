@@ -9,6 +9,7 @@ import (
 	"time"
 
 	jwt "github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 	"github.com/weirdwiz/online_judge/authentication/internal/app/dbclient"
 	"github.com/weirdwiz/online_judge/authentication/internal/app/model"
 )
@@ -35,6 +36,29 @@ func GenerateJWT(email string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func isTeacher(endpoint func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		tokenClaims, valid := extractClaims(r.Header.Get("Token"))
+		if !valid {
+			WriteError(w, http.StatusUnauthorized, nil)
+			return
+		}
+
+		email := fmt.Sprintf("%v", tokenClaims["email"])
+
+		user, err := DBClient.GetUser(email)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, err)
+		}
+
+		if user.AccountType == "teacher" {
+			endpoint(w, r)
+		} else {
+			WriteError(w, http.StatusUnauthorized, nil)
+		}
+	})
 }
 
 func isAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
@@ -143,6 +167,26 @@ func HandleAddBatch(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
+	var assignment model.Assignment
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&assignment)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Assignment"))
+		}
+	}
+
+	vars := mux.Vars(r)
+	bID := vars["bID"]
+
+	_, err := DBClient.AddAssignment(bID, assignment)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 func HandleGetBatches(w http.ResponseWriter, r *http.Request) {
 	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
 	if !valid {
@@ -164,6 +208,22 @@ func HandleGetBatches(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
+}
+
+func HandleGetAssignment(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	aID := vars["aID"]
+
+	assignment, err := DBClient.GetAssignment(aID)
+	if err != nil {
+		WriteError(w, http.InternalServerError, err)
+	}
+
+	assigmentBytes, _ := json.Marshal(assignment)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(assigmentBytes)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(assignmentBytes)
 }
 
 func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
