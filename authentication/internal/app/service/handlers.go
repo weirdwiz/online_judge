@@ -188,30 +188,4 @@ func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
 	}
 }
 
-func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
-
-	tokenClaims, valid := extractClaims(r.Header.Get("Token"))
-	if !valid {
-		WriteError(w, http.StatusUnauthorized, nil)
-		return
-	}
-
-	teacherEmail := fmt.Sprintf("%v", tokenClaims["email"])
-
-	var batch model.Batch
-	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(&batch)
-		if err != nil {
-			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
-		}
-	}
-
-	_, err := DBClient.AddAssignment(batch, teacherEmail)
-	if err != nil {
-		WriteError(w, http.StatusBadRequest, err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
 var DBClient dbclient.IDBClient

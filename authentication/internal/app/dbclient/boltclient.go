@@ -21,7 +21,6 @@ type IDBClient interface {
 	AddBatch(ub model.Batch, teacherEmail string) (bool, error)
 	GetBatches(u model.User) ([]model.Batch, error)
 	GetUser(email string) (model.User, error)
-	AddQuestion(ud model.Assignment, teacherEmail string) (bool, error)
 }
 
 // Struct to handle the DB Connection
@@ -35,7 +34,6 @@ const (
 	studentListBucketName string = "Students"
 	teacherListBucketName string = "Teachers"
 	batchBucketName       string = "Batches"
-	questionBucketName    string = "Questions"
 )
 
 var bucketList []string = []string{usersBucketName, studentListBucketName, teacherListBucketName, batchBucketName}
@@ -356,65 +354,6 @@ func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) 
 		}
 
 		t.Batches = append(t.Batches, ub.ID)
-
-		teacherByte, err := json.Marshal(t)
-		if err != nil {
-			return err
-		}
-
-		err = b.Put([]byte(t.Email), teacherByte)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	})
-	if err != nil {
-		return false, nil
-	}
-
-	return true, nil
-}
-
-func (db *DBClient) AddAssignment(ud model.Assignment, teacherEmail string) (bool, error) {
-	db.Open()
-	defer db.Close()
-
-	err := db.client.Update(func(txn *bolt.Tx) error {
-		b := txn.Bucket([]byte(questionBucketName))
-		id, err := b.NextSequence()
-		if err != nil {
-			return err
-		}
-		ud.ID = strconv.Itoa(int(id))
-		assignmentBytes, err := json.Marshal(ud)
-		if err != nil {
-			return err
-		}
-		err = b.Put([]byte(ud.ID), assignmentBytes)
-		if err != nil {
-			return err
-		}
-
-			s.Batches = append(s.Batches, ud.ID)
-
-			studentByte, err := json.Marshal(s)
-			if err != nil {
-				return err
-			}
-
-			err = b.Put([]byte(s.Email), studentByte)
-			if err != nil {
-				return err
-			}
-		}
-
-		t, err := getTeacher(txn, teacherEmail)
-		if err != nil {
-			return err
-		}
-
-		t.Batches = append(t.Batches, ud.ID)
 
 		teacherByte, err := json.Marshal(t)
 		if err != nil {
