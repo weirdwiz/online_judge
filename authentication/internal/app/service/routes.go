@@ -50,4 +50,10 @@ var routes = Routes{
 		"/addbatch",
 		HandleAddBatch,
 	},
+	Route{
+		"Assignment",
+		"POST",
+		"/addassignment",
+		HandleAddAssignment,
+	},
 }

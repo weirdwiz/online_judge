@@ -213,4 +213,33 @@ func extractClaims(tokenStr string) (jwt.MapClaims, bool) {
 >>>>>>> 905bc4d (add Batch)
 }
 
+func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
+	var assignment model.Assignment
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&assignment)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Batch"))
+		}
+	} else {
+		assignmentid := r.FormValue("assignmentId")
+		question := r.FormValue("question")
+		testcase := r.FormValue("[]testcase")
+
+		assignment.assignmentid = assignmentid
+		assignment.question = question
+		assignment.testcase = testcase
+	}
+
+	_, err := DBClient.AddAssignment(assignment.AssignmentID, assignment.question, assignment.testcase)
+	if err != nil {
+		WriteError(w, http.StatusBadRequest, err)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+
+}
+
 var DBClient dbclient.IDBClient
