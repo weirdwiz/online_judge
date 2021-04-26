@@ -1,9 +1,11 @@
 package service
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -165,9 +167,19 @@ func compile(file *os.File, compiler string) (string, error) {
 
 	defer out.Close()
 
-	p := make([]byte, 8)
-	out.Read(p)
-	content, _ := ioutil.ReadAll(out)
+	rd := bufio.NewReader(out)
 
-	return string(content), nil
+	output := ""
+	for {
+		p := make([]byte, 8)
+		rd.Read(p)
+		line, err := rd.ReadString('\n')
+
+		if err == io.EOF {
+			break
+		}
+		output = output + string(line)
+	}
+
+	return output, nil
 }
