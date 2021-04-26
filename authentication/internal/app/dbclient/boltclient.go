@@ -21,6 +21,7 @@ type IDBClient interface {
 	AddBatch(ub model.Batch, teacherEmail string) (bool, error)
 	GetBatches(u model.User) ([]model.Batch, error)
 	GetUser(email string) (model.User, error)
+	AddAssignment(bID string, assignment model.Assignment) (bool, error)
 }
 
 // Struct to handle the DB Connection
@@ -34,9 +35,10 @@ const (
 	studentListBucketName string = "Students"
 	teacherListBucketName string = "Teachers"
 	batchBucketName       string = "Batches"
+	assignmentBucket      string = "Assignments"
 )
 
-var bucketList []string = []string{usersBucketName, studentListBucketName, teacherListBucketName, batchBucketName}
+var bucketList []string = []string{usersBucketName, studentListBucketName, teacherListBucketName, batchBucketName, assignmentBucket}
 
 func (db *DBClient) Initialize(filepath string) {
 	db.filepath = filepath
@@ -257,7 +259,7 @@ func (db *DBClient) GetBatches(u model.User) ([]model.Batch, error) {
 			batchList = t.Batches
 		}
 		for _, batchID := range batchList {
-			batch, err := FetchBatch(txn, batchID)
+			batch, err := getBatch(txn, batchID)
 			if err != nil {
 				return err
 			}
@@ -271,7 +273,7 @@ func (db *DBClient) GetBatches(u model.User) ([]model.Batch, error) {
 	return res, nil
 }
 
-func FetchBatch(txn *bolt.Tx, ID string) (model.Batch, error) {
+func getBatch(txn *bolt.Tx, ID string) (model.Batch, error) {
 	b := txn.Bucket([]byte(batchBucketName))
 	batchByte := b.Get([]byte(ID))
 	batch := model.Batch{}
@@ -375,6 +377,30 @@ func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) 
 }
 
 func AddAssignment(bID string, a model.Assignment) (bool, error) {
+	db.Open()
+	defer db.Close()
+
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		b := txn.Bucket([]byte(assignmentBucket))
+		id, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+
+		a.ID = id
+		assignmentBytes, err := json.Marshal(a)
+		if err != nil {
+			return err
+		}
+		err = b.Put([]byte(a.ID), assignmentBytes)
+		batch, err := getBatch(txn, bID)
+		if err != nil {
+			return err
+		}
+		batch.Assignments = append(batch.Assignments, a.ID)
+
+		return nil
+	})
 
 	return true, nil
 }
