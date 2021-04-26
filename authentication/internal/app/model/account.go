@@ -13,6 +13,7 @@ type User struct {
 type TestCase struct {
 	Input  string `json:"input"`
 	Output string `json:"output"`
+	Result bool   `json:"result"`
 }
 
 type Assignment struct {
