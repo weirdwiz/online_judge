@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -90,13 +89,12 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 }
 
 func compile(file *os.File, compiler string) (string, error) {
-	buf := new(strings.Builder)
 
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
-		return buf.String(), err
+		return "", err
 	}
 
 	var Cmd []string
@@ -123,32 +121,32 @@ func compile(file *os.File, compiler string) (string, error) {
 	}, nil, nil, nil, "")
 
 	if err != nil {
-		return buf.String(), err
+		return "", err
 	}
 
 	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
 
 	//	err = cli.CopyToContainer(ctx, resp.ID, "/"+fileName, file, types.CopyToContainerOptions{})
 	//	if err != nil {
-	//		return buf.String(), err
+	//		return "", err
 	//	}
 
 	cmd := exec.Command("docker", "cp", file.Name(), resp.ID+":"+fileName)
 	_, err = cmd.Output()
 
 	if err != nil {
-		return buf.String(), err
+		return "", err
 	}
 
 	if err := cli.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
-		return buf.String(), err
+		return "", err
 	}
 
 	statusCh, errCh := cli.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
 		if err != nil {
-			return buf.String(), err
+			return "", err
 		}
 	case <-statusCh:
 	}
@@ -158,18 +156,18 @@ func compile(file *os.File, compiler string) (string, error) {
 	//			Cmd: []string{"./a.out"},
 	//		})
 	//		if err != nil {
-	//			return buf.String(), err
+	//			return "", err
 	//		}
 	//		cli.ContainerExecStart(ctx, execResp.ID, types.ExecStartCheck{})
 	//	}
 
-	out, err := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
-	if err != nil {
-		return buf.String(), err
-	}
+	out, _ := cli.ContainerLogs(ctx, resp.ID, types.ContainerLogsOptions{ShowStdout: true})
 
-	fmt.Println(buf)
-	io.Copy(buf, out)
+	defer out.Close()
 
-	return buf.String(), nil
+	p := make([]byte, 8)
+	out.Read(p)
+	content, _ := ioutil.ReadAll(out)
+
+	return string(content), nil
 }
