@@ -38,7 +38,84 @@ func GenerateJWT(email string) (string, error) {
 	return tokenString, nil
 }
 
-func isTeacher(endpoint func(http.ResponseWriter, *http.Request)) http.HandlerFunc {
+type CompileRequest struct {
+	Code     string          `json:"code"`
+	Language string          `json:"lang"`
+	TestCase model.TestCases `json:"testcase"`
+}
+
+type CompileResponse struct {
+	Output string `json:"output"`
+}
+
+func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
+	localhost := "localhost:8080"
+
+	c := CompileRequest{
+		Code:     s.Code,
+		Language: s.Language,
+		TestCase: t,
+	}
+	compileBytes, _ := json.Marshal(c)
+	resp, err := http.Post(localhost+"/compile", "application/json", compileBytes)
+	var compileResponse CompileResponse
+	if resp.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(resp.Body).Decode(&compileResponse)
+		if err != nil {
+			return "", false
+		}
+	}
+	var pass bool
+	if compileResponse.Output == t.Output {
+		pass = true
+	} else {
+		pass = false
+	}
+	return compileResponse.Output, pass
+}
+
+//func HandleGetAssignments(w http.ResponseWriter, r *http.Request) {
+//	vars:=mux.Vars(r)
+//	bID:=vars["bID"]
+//
+//	DBClient.GetBatch(bID)
+//}
+
+func HandleSubmission(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	aID := vars["aID"]
+
+	var submission model.Submission
+	if r.Header.Get("Content-Type") == "application/json" {
+		err := json.NewDecoder(r.Body).Decode(&submission)
+		if err != nil {
+			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Submission"))
+		}
+	}
+
+	assignment, err := DBClient.GetAssignment(submission.AssignmentID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Can't fetch assignment"))
+	}
+	for i, testCase := range assignment.TestCases {
+		output, pass := compileAndRun(submission, testCase)
+		testCase.Result = pass
+		testCase.Output = output
+		submission.Result = append(submission.Result, testCase)
+	}
+	err = DBClient.AddSubmission(submission)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Error saving submission"))
+		return
+	}
+	data, _ := json.Marshal(submission)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountType string) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenClaims, valid := extractClaims(r.Header.Get("Token"))
 		if !valid {
@@ -53,7 +130,7 @@ func isTeacher(endpoint func(http.ResponseWriter, *http.Request)) http.HandlerFu
 			WriteError(w, http.StatusBadRequest, err)
 		}
 
-		if user.AccountType == "teacher" {
+		if user.AccountType == accountType {
 			endpoint(w, r)
 		} else {
 			WriteError(w, http.StatusUnauthorized, nil)
@@ -138,7 +215,6 @@ func HandleLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
-
 }
 
 func HandleAddBatch(w http.ResponseWriter, r *http.Request) {

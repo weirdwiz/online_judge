@@ -37,9 +37,10 @@ const (
 	teacherListBucketName string = "Teachers"
 	batchBucketName       string = "Batches"
 	assignmentBucket      string = "Assignments"
+	submissionBucket      string = "Submissions"
 )
 
-var bucketList []string = []string{usersBucketName, studentListBucketName, teacherListBucketName, batchBucketName, assignmentBucket}
+var bucketList []string = []string{usersBucketName, studentListBucketName, teacherListBucketName, batchBucketName, assignmentBucket, submissionBucket}
 
 func (db *DBClient) Initialize(filepath string) {
 	db.filepath = filepath
@@ -169,6 +170,36 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	return true, nil
 }
 
+func (db *DBClient) AddSubmission(s model.Submission) error {
+	db.Open()
+	defer db.Close()
+
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		b := txn.Bucket([]byte(submissionBucket))
+		id, err := b.NextSequence()
+		if err != nil {
+			return err
+		}
+		s.ID = strconv.Itoa(int(id))
+
+		submissionBytes, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+
+		err = b.Put([]byte(s.ID), submissionBytes)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (db *DBClient) GetUser(email string) (model.User, error) {
 	db.Open()
 	defer db.Close()
@@ -272,6 +303,23 @@ func (db *DBClient) GetBatches(u model.User) ([]model.Batch, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (db *DBClient) GetBatch(bID string) (model.Batch, error) {
+	db.Open()
+	defer db.Close()
+
+	var b model.Batch
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		b, _ = getBatch(txn, bID)
+		if err != nil {
+			return err
+		}
+	})
+	if err != nil {
+		return batch, err
+	}
+	return batch, nil
 }
 
 func getBatch(txn *bolt.Tx, ID string) (model.Batch, error) {
@@ -427,7 +475,18 @@ func AddAssignment(bID string, a model.Assignment) (bool, error) {
 		if err != nil {
 			return err
 		}
+
 		batch.Assignments = append(batch.Assignments, a.ID)
+		batchBytes, err := json.Marshal(batch)
+		if err != nil {
+			return err
+		}
+
+		b = txn.Bucket([]byte(batchBucketName))
+		err = b.Put([]byte(b.ID), batch)
+		if err != nil {
+			return err
+		}
 
 		return nil
 	})

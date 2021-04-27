@@ -48,7 +48,7 @@ var routes = Routes{
 		"AddAssignment",
 		"POST",
 		"/addassignment/{bID}",
-		isAuthorized(isTeacher(HandleAddAssignment)),
+		isAuthorized(isAccountType(HandleAddAssignment, "student")),
 	},
 	Route{
 		"GetAssignment",
@@ -56,4 +56,16 @@ var routes = Routes{
 		"/getassignment/{aID}",
 		isAuthorized(HandleGetAssignment),
 	},
+	Route{
+		"Submission",
+		"POST",
+		"/submit/{aID}",
+		isAuthorized(isAccountType(HandleSubmission, "teacher")),
+	},
+	//	Route{
+	//		"GetAssignments",
+	//		"POST",
+	//		"/getassignments/{bID}",
+	//		isAuthorized(HandleGetAssignments),
+	//	},
 }

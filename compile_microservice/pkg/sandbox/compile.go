@@ -7,12 +7,11 @@ type TestCase struct {
 }
 
 type CompileRequest struct {
-	Code      string     `json:"code"`
-	Language  string     `json:"lang"`
-	TestCases []TestCase `json:"testcases"`
+	Code     string   `json:"code"`
+	Language string   `json:"lang"`
+	TestCase TestCase `json:"testcase"`
 }
 
 type CompileResponse struct {
-	Output         string     `json:"output"`
-	TestCaseResult []TestCase `json:"testcaseresult"`
+	Output string `json:"output"`
 }
