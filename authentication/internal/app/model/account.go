@@ -31,11 +31,11 @@ type Batch struct {
 }
 
 type Submission struct {
-	ID           string            `json:"id"`
-	AssignmentID string            `json:"assignmentId`
-	Code         string            `json:"code"`
-	Output       string            `json:"output"`
-	Pass         map[TestCase]bool `json:"pass"`
+	ID           string     `json:"id"`
+	AssignmentID string     `json:"assignmentId`
+	Code         string     `json:"code"`
+	Language     string     `json:"lang"`
+	Result       []TestCase `json:"result"`
 }
 
 type Student struct {
