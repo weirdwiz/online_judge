@@ -49,7 +49,7 @@ type CompileResponse struct {
 	Output string `json:"output"`
 }
 
-func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
+func compileAndRun(s model.Submission, t model.TestCase) (string, bool, error) {
 	localhost := "localhost:8080"
 
 	c := CompileRequest{
@@ -60,13 +60,13 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 	compileBytes, _ := json.Marshal(c)
 	resp, err := http.Post(localhost+"/compile", "application/json", bytes.NewBuffer(compileBytes))
 	if err != nil {
-		return "", false
+		return "", false, fmt.Errorf("Cannot make a post request")
 	}
 	var compileResponse CompileResponse
 	if resp.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(resp.Body).Decode(&compileResponse)
 		if err != nil {
-			return "", false
+			return "", false, fmt.Errorf("Cannot Decode response")
 		}
 	}
 
@@ -104,7 +104,11 @@ func HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, testCase := range assignment.TestCases {
-		output, pass := compileAndRun(submission, testCase)
+		output, pass, err := compileAndRun(submission, testCase)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err)
+			return
+		}
 		testCase.Result = pass
 		testCase.Output = output
 		submission.Result = append(submission.Result, testCase)
@@ -125,7 +129,7 @@ func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountTyp
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenClaims, valid := extractClaims(r.Header.Get("Token"))
 		if !valid {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("Invalid token"))
 			return
 		}
 
