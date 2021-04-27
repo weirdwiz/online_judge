@@ -23,6 +23,7 @@ type IDBClient interface {
 	GetUser(email string) (model.User, error)
 	AddAssignment(bID string, assignment model.Assignment) (bool, error)
 	GetAssignment(aID string) (model.Assignment, error)
+	AddSubmission(s model.Submission) error
 }
 
 // Struct to handle the DB Connection
@@ -312,14 +313,12 @@ func (db *DBClient) GetBatch(bID string) (model.Batch, error) {
 	var b model.Batch
 	err := db.client.Update(func(txn *bolt.Tx) error {
 		b, _ = getBatch(txn, bID)
-		if err != nil {
-			return err
-		}
+		return nil
 	})
 	if err != nil {
-		return batch, err
+		return b, err
 	}
-	return batch, nil
+	return b, nil
 }
 
 func getBatch(txn *bolt.Tx, ID string) (model.Batch, error) {
@@ -486,7 +485,7 @@ func (db *DBClient) AddAssignment(bID string, a model.Assignment) (bool, error) 
 		}
 
 		b = txn.Bucket([]byte(batchBucketName))
-		err = b.Put([]byte(b.ID), batch)
+		err = b.Put([]byte(bID), batchBytes)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -39,9 +40,9 @@ func GenerateJWT(email string) (string, error) {
 }
 
 type CompileRequest struct {
-	Code     string          `json:"code"`
-	Language string          `json:"lang"`
-	TestCase model.TestCases `json:"testcase"`
+	Code     string         `json:"code"`
+	Language string         `json:"lang"`
+	TestCase model.TestCase `json:"testcase"`
 }
 
 type CompileResponse struct {
@@ -57,7 +58,10 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 		TestCase: t,
 	}
 	compileBytes, _ := json.Marshal(c)
-	resp, err := http.Post(localhost+"/compile", "application/json", compileBytes)
+	resp, err := http.Post(localhost+"/compile", "application/json", bytes.NewBuffer(compileBytes))
+	if err != nil {
+		return "", false
+	}
 	var compileResponse CompileResponse
 	if resp.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(resp.Body).Decode(&compileResponse)
@@ -65,6 +69,7 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 			return "", false
 		}
 	}
+
 	var pass bool
 	if compileResponse.Output == t.Output {
 		pass = true
@@ -92,12 +97,13 @@ func HandleSubmission(w http.ResponseWriter, r *http.Request) {
 			WriteError(w, http.StatusBadRequest, fmt.Errorf("Error Decoding Submission"))
 		}
 	}
-
+	submission.AssignmentID = aID
 	assignment, err := DBClient.GetAssignment(submission.AssignmentID)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Can't fetch assignment"))
 	}
-	for i, testCase := range assignment.TestCases {
+
+	for _, testCase := range assignment.TestCases {
 		output, pass := compileAndRun(submission, testCase)
 		testCase.Result = pass
 		testCase.Output = output

@@ -36,7 +36,7 @@ var routes = Routes{
 		"AddBatch",
 		"POST",
 		"/addbatch",
-		isAuthorized(isTeacher(HandleAddBatch)),
+		isAuthorized(isAccountType(HandleAddBatch, "teacher")),
 	},
 	Route{
 		"GetBatches",
