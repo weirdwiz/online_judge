@@ -60,7 +60,7 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	}
 
 	defer os.Remove(inputFile.Name())
-	inputFile.WriteString(request.TestCases.Input)
+	inputFile.WriteString(request.TestCase.Input)
 	defer inputFile.Close()
 
 	stdout, err := compile(compileFile, inputFile, compiler)
@@ -145,7 +145,7 @@ func compile(file *os.File, input *os.File, compiler string) (string, error) {
 		return "", err
 	}
 
-	cmd := exec.Command("docker", "cp", input.Name(), resp.ID+":"+inputFileName)
+	cmd = exec.Command("docker", "cp", input.Name(), resp.ID+":"+inputFileName)
 	_, err = cmd.Output()
 
 	if err != nil {
