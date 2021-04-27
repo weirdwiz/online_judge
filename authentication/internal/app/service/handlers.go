@@ -28,7 +28,7 @@ func GenerateJWT(email string) (string, error) {
 
 	claims["authorized"] = true
 	claims["email"] = email
-	claims["exp"] = time.Now().Add(time.Minute * 60).Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 60).Unix()
 
 	tokenString, err := token.SignedString(mySigningKey)
 
@@ -50,7 +50,7 @@ type CompileResponse struct {
 }
 
 func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
-	localhost := "localhost:8080"
+	localhost := "localhost:5050"
 
 	c := CompileRequest{
 		Code:     s.Code,
@@ -69,7 +69,7 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 			return "", false
 		}
 	}
-
+	fmt.Println(compileResponse)
 	var pass bool
 	if compileResponse.Output == t.Output {
 		pass = true
@@ -125,7 +125,7 @@ func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountTyp
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenClaims, valid := extractClaims(r.Header.Get("Token"))
 		if !valid {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
 			return
 		}
 
@@ -139,7 +139,7 @@ func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountTyp
 		if user.AccountType == accountType {
 			endpoint(w, r)
 		} else {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("wrong account type"))
 		}
 	})
 }
