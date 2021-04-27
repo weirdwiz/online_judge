@@ -292,12 +292,12 @@ func HandleGetAssignment(w http.ResponseWriter, r *http.Request) {
 
 	assignment, err := DBClient.GetAssignment(aID)
 	if err != nil {
-		WriteError(w, http.InternalServerError, err)
+		WriteError(w, http.StatusInternalServerError, err)
 	}
 
-	assigmentBytes, _ := json.Marshal(assignment)
+	assignmentBytes, _ := json.Marshal(assignment)
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Content-Length", strconv.Itoa(len(assigmentBytes)))
+	w.Header().Set("Content-Length", strconv.Itoa(len(assignmentBytes)))
 	w.WriteHeader(http.StatusOK)
 	w.Write(assignmentBytes)
 }

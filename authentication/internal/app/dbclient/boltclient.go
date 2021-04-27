@@ -399,12 +399,15 @@ func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) 
 			}
 		}
 
+		b = txn.Bucket([]byte(teacherListBucketName))
 		t, err := getTeacher(txn, teacherEmail)
 		if err != nil {
 			return err
 		}
 
+		fmt.Println(t)
 		t.Batches = append(t.Batches, ub.ID)
+		fmt.Println(t)
 
 		teacherByte, err := json.Marshal(t)
 		if err != nil {
@@ -425,36 +428,36 @@ func (db *DBClient) AddBatch(ub model.Batch, teacherEmail string) (bool, error) 
 	return true, nil
 }
 
-func GetAssignment(aID string) (model.Assignment, error) {
+func (db *DBClient) GetAssignment(aID string) (model.Assignment, error) {
 	db.Open()
 	defer db.Close()
 
 	var assignment model.Assignment
 
 	err := db.client.Update(func(txn *bolt.Tx) error {
-		assignment, err := GetAssignment(aID)
-		if err != nil {
-			return err
-		}
+		assignment, _ = getAssignment(txn, aID)
 		return nil
 	})
+	if err != nil {
+		return assignment, err
+	}
 	return assignment, nil
 }
 
 func getAssignment(txn *bolt.Tx, aID string) (model.Assignment, error) {
 	b := txn.Bucket([]byte(assignmentBucket))
-	assignmentBytes := b.Get([]byte(bID))
+	assignmentBytes := b.Get([]byte(aID))
 
 	var assignment model.Assignment
 	err := json.Unmarshal(assignmentBytes, &assignment)
 	if err != nil {
-		return err
+		return assignment, err
 	}
 
 	return assignment, nil
 }
 
-func AddAssignment(bID string, a model.Assignment) (bool, error) {
+func (db *DBClient) AddAssignment(bID string, a model.Assignment) (bool, error) {
 	db.Open()
 	defer db.Close()
 
@@ -465,7 +468,7 @@ func AddAssignment(bID string, a model.Assignment) (bool, error) {
 			return err
 		}
 
-		a.ID = id
+		a.ID = strconv.Itoa(int(id))
 		assignmentBytes, err := json.Marshal(a)
 		if err != nil {
 			return err
@@ -490,6 +493,9 @@ func AddAssignment(bID string, a model.Assignment) (bool, error) {
 
 		return nil
 	})
+	if err != nil {
+		return false, err
+	}
 
 	return true, nil
 }

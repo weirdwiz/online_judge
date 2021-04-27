@@ -17,9 +17,10 @@ type TestCase struct {
 }
 
 type Assignment struct {
-	ID        string `json:"id"`
-	Question  string `json:"question"`
-	TestCases []TestCase
+	ID        string     `json:"id"`
+	Name      string     `json:"name"`
+	Question  string     `json:"question"`
+	TestCases []TestCase `json:"testcases"`
 }
 
 type Batch struct {
