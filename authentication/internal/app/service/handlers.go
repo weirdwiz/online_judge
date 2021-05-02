@@ -28,7 +28,7 @@ func GenerateJWT(email string) (string, error) {
 
 	claims["authorized"] = true
 	claims["email"] = email
-	claims["exp"] = time.Now().Add(time.Minute * 60).Unix()
+	claims["exp"] = time.Now().Add(time.Hour * 60).Unix()
 
 	tokenString, err := token.SignedString(mySigningKey)
 
@@ -50,7 +50,7 @@ type CompileResponse struct {
 }
 
 func compileAndRun(s model.Submission, t model.TestCase) (string, bool, error) {
-	localhost := "localhost:8080"
+	localhost := "http://localhost:5050"
 
 	c := CompileRequest{
 		Code:     s.Code,
@@ -58,25 +58,25 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool, error) {
 		TestCase: t,
 	}
 	compileBytes, _ := json.Marshal(c)
+	fmt.Println(c)
 	resp, err := http.Post(localhost+"/compile", "application/json", bytes.NewBuffer(compileBytes))
 	if err != nil {
+		fmt.Println(err)
 		return "", false, fmt.Errorf("Cannot make a post request")
 	}
 	var compileResponse CompileResponse
-	if resp.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(resp.Body).Decode(&compileResponse)
-		if err != nil {
-			return "", false, fmt.Errorf("Cannot Decode response")
-		}
+	err = json.NewDecoder(resp.Body).Decode(&compileResponse)
+	if err != nil {
+		return "", false, fmt.Errorf("Cannot Decode response")
 	}
-
+	fmt.Println(compileResponse)
 	var pass bool
 	if compileResponse.Output == t.Output {
 		pass = true
 	} else {
 		pass = false
 	}
-	return compileResponse.Output, pass
+	return compileResponse.Output, pass, nil
 }
 
 //func HandleGetAssignments(w http.ResponseWriter, r *http.Request) {
@@ -143,7 +143,7 @@ func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountTyp
 		if user.AccountType == accountType {
 			endpoint(w, r)
 		} else {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("wrong account type"))
 		}
 	})
 }
@@ -166,7 +166,7 @@ func isAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 				endpoint(w, r)
 			}
 		} else {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("not Authorised"))
 		}
 	})
 }
