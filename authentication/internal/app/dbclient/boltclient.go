@@ -26,6 +26,8 @@ type IDBClient interface {
 	GetAssignment(aID string) (model.Assignment, error)
 	AddSubmission(s model.Submission, email string) error
 	GetQuestionBank() ([]model.Assignment, error)
+	GetSubmission(sID string) (model.Submission, error)
+	GetSubmissions(aID string) ([]model.Submission, error)
 }
 
 // Struct to handle the DB Connection
@@ -185,11 +187,17 @@ func (db *DBClient) AddSubmission(s model.Submission, email string) error {
 		}
 		s.ID = strconv.Itoa(int(id))
 
-		submissionBytes, err := json.Marshal(s)
+		st, err := getStudent(txn, email)
 		if err != nil {
 			return err
 		}
 
+		s.Student = st
+
+		submissionBytes, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
 		err = b.Put([]byte(s.ID), submissionBytes)
 		if err != nil {
 			return err
@@ -197,19 +205,25 @@ func (db *DBClient) AddSubmission(s model.Submission, email string) error {
 
 		b = txn.Bucket([]byte(studentListBucketName))
 
-		s, err := getStudent(txn, email)
+		st.Submissions = append(st.Submissions, st.ID)
+
+		studentBytes, err := json.Marshal(st)
 		if err != nil {
 			return err
 		}
 
-		s.Submissions = append(s.Submissions, s.ID)
+		b.Put([]byte(st.ID), studentBytes)
 
-		studentBytes, err := json.Marshal(s)
+		a, err := getAssignment(txn, s.AssignmentID)
 		if err != nil {
 			return err
 		}
 
-		b.Put([]byte(s.ID), studentBytes)
+		a.SubmissionIDs = append(a.SubmissionIDs, s.ID)
+
+		aBytes, _ = json.Marshal(a)
+		b = txn.Bucket([]byte(assignmentBucket))
+		b.Put([]byte(a.ID), aBytes)
 
 		return nil
 	})
@@ -217,6 +231,58 @@ func (db *DBClient) AddSubmission(s model.Submission, email string) error {
 		return err
 	}
 	return nil
+}
+
+func (db *DBClient) GetSubmissions(aID string) ([]model.Submission, error) {
+	db.Open()
+	defer db.Close()
+
+	var submissions []model.Submission
+
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		batch, err := getBatch(txn, bID)
+		if err != nil {
+			return err
+		}
+
+		assignment, err := getAssignment(txn, aID)
+		if err != nil {
+			return err
+		}
+
+		for _, sID := range assignment.SubmissionIDs {
+			submission, err := getSubmission(txn, sID)
+			if err != nil {
+				return err
+			}
+			submissions = append(submissions, submission)
+		}
+		return nil
+	})
+	return submissions, nil
+}
+
+func (db *DBClient) GetSubmission(sID string) (model.Submission, error) {
+	db.Open()
+	defer db.Close()
+
+	var submission model.Submission
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		submission, _ = getSubmission(sID)
+		return nil
+	})
+	return submission, err
+}
+
+func getSubmission(txn *bolt.Tx, sID string) (model.Submission, error) {
+	b := txn.Bucket([]byte(submissionBucket))
+	submissionBytes := b.Get([]byte(sID))
+	s := model.Submission{}
+	err := json.Unmarshal(submissionBytes, &s)
+	if err != nil {
+		return s, err
+	}
+	return s, err
 }
 
 func (db *DBClient) GetUser(email string) (model.User, error) {
@@ -236,7 +302,8 @@ func (db *DBClient) GetUser(email string) (model.User, error) {
 func getUser(txn *bolt.Tx, email string) (model.User, error) {
 	b := txn.Bucket([]byte(usersBucketName))
 	userBytes := b.Get([]byte(email))
-	u := model.User{} err := json.Unmarshal(userBytes, &u)
+	u := model.User{}
+	err := json.Unmarshal(userBytes, &u)
 	if err != nil {
 		return u, err
 	}

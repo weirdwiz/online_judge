@@ -116,12 +116,39 @@ func HandleSubmission(w http.ResponseWriter, r *http.Request) {
 		testCase.Output = output
 		submission.Result = append(submission.Result, testCase)
 	}
-	err = DBClient.AddSubmission(submission)
+	err = DBClient.AddSubmission(submission, studentEmail)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Error saving submission"))
 		return
 	}
-	data, _ := json.Marshal(submission)
+	w.WriteHeader(http.StatusOK)
+
+}
+
+func HandleGetAllSubmissions(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	aID := vars["aID"]
+
+	submissions, err := DBClient.GetSubmissions(aID)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, fmt.Errorf("failed to get submission"))
+		return
+	}
+
+	data, _ := json.Marshal(submissions)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
+func HandleGetSubmission(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	sID := vars["sID"]
+
+	s, _ := DBClient.GetSubmission(sID)
+
+	data, _ := json.Marshal(s)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
 	w.WriteHeader(http.StatusOK)
@@ -285,7 +312,7 @@ func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bID := vars["bID"]
 
-	_, err := DBClient.AddAssignment(bID, studentEmail, assignment)
+	_, err := DBClient.AddAssignment(bID, assignment)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err)
 		return
