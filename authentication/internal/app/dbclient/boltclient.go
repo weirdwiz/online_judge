@@ -4,13 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"reflect"
 	"strconv"
 
 	"github.com/boltdb/bolt"
 	"github.com/weirdwiz/online_judge/authentication/internal/app/model"
 )
 
-// Interface for the DB Client
+// IDBClient Interface for the DB Client
 type IDBClient interface {
 	Initialize(filepath string)
 	Open()
@@ -24,6 +25,7 @@ type IDBClient interface {
 	AddAssignment(bID string, assignment model.Assignment) (bool, error)
 	GetAssignment(aID string) (model.Assignment, error)
 	AddSubmission(s model.Submission) error
+	GetQuestionBank() ([]model.Assignment, error)
 }
 
 // Struct to handle the DB Connection
@@ -472,6 +474,7 @@ func (db *DBClient) AddAssignment(bID string, a model.Assignment) (bool, error) 
 		if err != nil {
 			return err
 		}
+
 		err = b.Put([]byte(a.ID), assignmentBytes)
 		batch, err := getBatch(txn, bID)
 		if err != nil {
@@ -497,4 +500,30 @@ func (db *DBClient) AddAssignment(bID string, a model.Assignment) (bool, error) 
 	}
 
 	return true, nil
+}
+
+func (db *DBClient) GetQuestionBank() ([]model.Assignment, error) {
+	db.Open()
+	defer db.Close()
+
+	var assignments []model.Assignment
+	err := db.client.Update(func(txn *bolt.Tx) error {
+		i := 1
+		for {
+			a, err := getAssignment(txn, strconv.Itoa(i))
+			var blank model.Assignment
+			if err != nil {
+				return err
+			} else if reflect.DeepEqual(blank, a) {
+				break
+			}
+			assignments = append(assignments, a)
+			i++
+		}
+		return nil
+	})
+	if err != nil {
+		return assignments, err
+	}
+	return assignments, nil
 }

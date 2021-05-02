@@ -186,6 +186,23 @@ func HandleRegistration(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Status: %t", success)
 }
 
+func HandleQuestionBank(w http.ResponseWriter, r *http.Request) {
+	q, err := DBClient.GetQuestionBank()
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Error getting question bank"))
+	}
+
+	qBytes, err := json.Marshal(q)
+	if err != nil {
+		WriteError(w, http.StatusInternalServerError, fmt.Errorf("Error marshaling json"))
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Length", strconv.Itoa(len(qBytes)))
+	w.WriteHeader(http.StatusOK)
+	w.Write(qBytes)
+
+}
+
 func WriteError(w http.ResponseWriter, statusCode int, err error) {
 	w.WriteHeader(statusCode)
 	fmt.Fprintf(w, err.Error())

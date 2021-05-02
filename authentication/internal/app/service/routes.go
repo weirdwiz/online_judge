@@ -62,6 +62,12 @@ var routes = Routes{
 		"/submit/{aID}",
 		isAuthorized(isAccountType(HandleSubmission, "student")),
 	},
+	Route{
+		"GetQuestionBank",
+		"GET",
+		"/questionbank",
+		isAuthorized(HandleQuestionBank),
+	},
 	//	Route{
 	//		"GetAssignments",
 	//		"POST",
