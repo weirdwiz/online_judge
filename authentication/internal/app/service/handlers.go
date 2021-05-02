@@ -90,6 +90,9 @@ func HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	aID := vars["aID"]
 
+	tokenClaims, _ := extractClaims(r.Header.Get("Token"))
+	studentEmail := fmt.Sprintf("%v", tokenClaims["email"])
+
 	var submission model.Submission
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(&submission)
@@ -282,7 +285,7 @@ func HandleAddAssignment(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	bID := vars["bID"]
 
-	_, err := DBClient.AddAssignment(bID, assignment)
+	_, err := DBClient.AddAssignment(bID, studentEmail, assignment)
 	if err != nil {
 		WriteError(w, http.StatusInternalServerError, err)
 		return

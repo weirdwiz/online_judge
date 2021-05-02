@@ -24,7 +24,7 @@ type IDBClient interface {
 	GetUser(email string) (model.User, error)
 	AddAssignment(bID string, assignment model.Assignment) (bool, error)
 	GetAssignment(aID string) (model.Assignment, error)
-	AddSubmission(s model.Submission) error
+	AddSubmission(s model.Submission, email string) error
 	GetQuestionBank() ([]model.Assignment, error)
 }
 
@@ -173,7 +173,7 @@ func (db *DBClient) CreateUser(u model.User) (bool, error) {
 	return true, nil
 }
 
-func (db *DBClient) AddSubmission(s model.Submission) error {
+func (db *DBClient) AddSubmission(s model.Submission, email string) error {
 	db.Open()
 	defer db.Close()
 
@@ -194,6 +194,22 @@ func (db *DBClient) AddSubmission(s model.Submission) error {
 		if err != nil {
 			return err
 		}
+
+		b = txn.Bucket([]byte(studentListBucketName))
+
+		s, err := getStudent(txn, email)
+		if err != nil {
+			return err
+		}
+
+		s.Submissions = append(s.Submissions, s.ID)
+
+		studentBytes, err := json.Marshal(s)
+		if err != nil {
+			return err
+		}
+
+		b.Put([]byte(s.ID), studentBytes)
 
 		return nil
 	})
@@ -220,8 +236,7 @@ func (db *DBClient) GetUser(email string) (model.User, error) {
 func getUser(txn *bolt.Tx, email string) (model.User, error) {
 	b := txn.Bucket([]byte(usersBucketName))
 	userBytes := b.Get([]byte(email))
-	u := model.User{}
-	err := json.Unmarshal(userBytes, &u)
+	u := model.User{} err := json.Unmarshal(userBytes, &u)
 	if err != nil {
 		return u, err
 	}
