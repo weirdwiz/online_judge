@@ -49,8 +49,8 @@ type CompileResponse struct {
 	Output string `json:"output"`
 }
 
-func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
-	localhost := "localhost:5050"
+func compileAndRun(s model.Submission, t model.TestCase) (string, bool, error) {
+	localhost := "http://localhost:5050"
 
 	c := CompileRequest{
 		Code:     s.Code,
@@ -58,16 +58,16 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 		TestCase: t,
 	}
 	compileBytes, _ := json.Marshal(c)
+	fmt.Println(c)
 	resp, err := http.Post(localhost+"/compile", "application/json", bytes.NewBuffer(compileBytes))
 	if err != nil {
-		return "", false
+		fmt.Println(err)
+		return "", false, fmt.Errorf("Cannot make a post request")
 	}
 	var compileResponse CompileResponse
-	if resp.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(resp.Body).Decode(&compileResponse)
-		if err != nil {
-			return "", false
-		}
+	err = json.NewDecoder(resp.Body).Decode(&compileResponse)
+	if err != nil {
+		return "", false, fmt.Errorf("Cannot Decode response")
 	}
 	fmt.Println(compileResponse)
 	var pass bool
@@ -76,7 +76,7 @@ func compileAndRun(s model.Submission, t model.TestCase) (string, bool) {
 	} else {
 		pass = false
 	}
-	return compileResponse.Output, pass
+	return compileResponse.Output, pass, nil
 }
 
 //func HandleGetAssignments(w http.ResponseWriter, r *http.Request) {
@@ -104,7 +104,11 @@ func HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, testCase := range assignment.TestCases {
-		output, pass := compileAndRun(submission, testCase)
+		output, pass, err := compileAndRun(submission, testCase)
+		if err != nil {
+			WriteError(w, http.StatusInternalServerError, err)
+			return
+		}
 		testCase.Result = pass
 		testCase.Output = output
 		submission.Result = append(submission.Result, testCase)
@@ -125,7 +129,7 @@ func isAccountType(endpoint func(http.ResponseWriter, *http.Request), accountTyp
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		tokenClaims, valid := extractClaims(r.Header.Get("Token"))
 		if !valid {
-			WriteError(w, http.StatusUnauthorized, fmt.Errorf("invalid token"))
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("Invalid token"))
 			return
 		}
 
@@ -162,7 +166,7 @@ func isAuthorized(endpoint func(http.ResponseWriter, *http.Request)) http.Handle
 				endpoint(w, r)
 			}
 		} else {
-			WriteError(w, http.StatusUnauthorized, nil)
+			WriteError(w, http.StatusUnauthorized, fmt.Errorf("not Authorised"))
 		}
 	})
 }

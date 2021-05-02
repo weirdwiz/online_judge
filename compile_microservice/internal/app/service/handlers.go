@@ -29,7 +29,7 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(err.Error())
 		}
 	}
-
+	fmt.Println(request)
 	fileExtention := strings.ToLower(request.Language)
 	switch fileExtention {
 	case "c":
@@ -85,7 +85,7 @@ func CompileCode(w http.ResponseWriter, r *http.Request) {
 	response := &sandbox.CompileResponse{
 		Output: stdout,
 	}
-
+	fmt.Println(response)
 	data, _ := json.Marshal(response)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Content-Length", strconv.Itoa(len(data)))
