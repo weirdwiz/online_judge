@@ -113,12 +113,15 @@ func compile(file *os.File, input *os.File, compiler string) (string, error) {
 	case "g++":
 		image = "gcc"
 		Cmd = []string{"/bin/sh", "-c", "g++ " + fileName + " && ./a.out < " + inputFileName}
+		//Cmd = []string{"cat", inputFileName}
 	case "gcc":
 		image = "gcc"
 		Cmd = []string{"/bin/sh", "-c", "gcc " + fileName + " && ./a.out < " + inputFileName}
+		//Cmd = []string{"cat", inputFileName}
 	case "python":
 		image = "python"
-		Cmd = []string{"python", fileName, " < ", inputFileName}
+		Cmd = []string{"/bin/sh", "-c", "python " + fileName + " < " + inputFileName}
+		//Cmd = []string{"cat", inputFileName}
 	}
 
 	resp, err := cli.ContainerCreate(ctx, &container.Config{
@@ -131,7 +134,7 @@ func compile(file *os.File, input *os.File, compiler string) (string, error) {
 		return "", err
 	}
 
-	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
+	//	defer cli.ContainerRemove(ctx, resp.ID, types.ContainerRemoveOptions{})
 
 	//	err = cli.CopyToContainer(ctx, resp.ID, "/"+fileName, file, types.CopyToContainerOptions{})
 	//	if err != nil {
